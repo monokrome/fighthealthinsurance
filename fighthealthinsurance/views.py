@@ -1,10 +1,10 @@
 import asyncio
 import concurrent
-import hashlib
 import os
 from io import BytesIO
 from string import Template
 from typing import *
+from django.conf import settings
 
 import time
 
@@ -70,7 +70,9 @@ class TermsOfServiceView(generic.TemplateView):
 
 class ShareDenialView(View):
     def get(self, request):
-        return render(request, "share_denial.html", context={"title": "Share Denial"})
+        return render(
+            request, "share_denial.html", context={"title": "Share Denial"}
+        )
 
     def post(self, request):
         form = ShareDenailForm(request.POST)
@@ -78,7 +80,9 @@ class ShareDenialView(View):
 
 class ShareAppealView(View):
     def get(self, request):
-        return render(request, "share_appeal.html", context={"title": "Share Appeal"})
+        return render(
+            request, "share_appeal.html", context={"title": "Share Appeal"}
+        )
 
     def post(self, request):
         form = ShareAppealForm(request.POST)
@@ -180,8 +184,7 @@ class FindNextSteps(View):
         form = PostInferedForm(request.POST)
         if form.is_valid():
             denial_id = form.cleaned_data["denial_id"]
-            email = form.cleaned_data["email"]
-            hashed_email = hashlib.sha512(email.encode("utf-8")).hexdigest()
+            hashed_email = Denial.get_hashed_email(form.cleaned_data["email"])
 
             # Update the denial
             denial = Denial.objects.filter(
@@ -201,21 +204,22 @@ class FindNextSteps(View):
                     (
                         (
                             "<a href='https://www.cms.gov/CCIIO/Resources/Consumer-Assistance-Grants/"
-                            + state
-                            + "'>"
-                            + f"Your state {state} participates in a "
-                            + f"Consumer Assistance Program(CAP), and you may be able to get help "
+                            + state + "'>" +
+                            f"Your state {state} participates in a " +
+                            f"Consumer Assistance Program(CAP), and you may be able to get help "
                             + f"through them.</a>"
                         ),
                         "Visit <a href='https://www.cms.gov/CCIIO/Resources/Consumer-Assistance-Grants/'>CMS for more info</a>",
                     )
                 )
-            if denial.regulator == Regulator.objects.filter(alt_name="ERISA").get():
+            if denial.regulator == Regulator.objects.filter(alt_name="ERISA"
+                                                            ).get():
                 outside_help_details.append(
                     (
                         (
                             "Your plan looks to be an ERISA plan which means your employer <i>may</i>"
-                            + " have more input into plan decisions. If your are on good terms with HR "
+                            +
+                            " have more input into plan decisions. If your are on good terms with HR "
                             + " it could be worth it to ask them for advice."
                         ),
                         "Talk to your employer's HR if you are on good terms with them.",
@@ -234,7 +238,9 @@ class FindNextSteps(View):
             for dt in denial.denial_type.all():
                 new_form = dt.get_form()
                 if new_form is not None:
-                    new_form = new_form(initial={"medical_reason": dt.appeal_text})
+                    new_form = new_form(
+                        initial={"medical_reason": dt.appeal_text}
+                    )
                     question_forms.append(new_form)
             denial_ref_form = DenialRefForm(
                 initial={
@@ -269,8 +275,7 @@ class ChooseAppeal(View):
         form = ChooseAppealForm(request.POST)
         if form.is_valid():
             denial_id = form.cleaned_data["denial_id"]
-            email = form.cleaned_data["email"]
-            hashed_email = hashlib.sha512(email.encode("utf-8")).hexdigest()
+            hashed_email = Denial.get_hashed_email(form.cleaned_data["email"])
             appeal_text = form.cleaned_data["appeal_text"]
 
             # Get the current info
@@ -295,8 +300,7 @@ class GenerateAppeal(View):
         form = DenialRefForm(request.POST)
         if form.is_valid():
             denial_id = form.cleaned_data["denial_id"]
-            email = form.cleaned_data["email"]
-            hashed_email = hashlib.sha512(email.encode("utf-8")).hexdigest()
+            hashed_email = Denial.get_hashed_email(form.cleaned_data["email"])
             return render(
                 request,
                 "appeals.html",
@@ -313,7 +317,6 @@ class GenerateAppeal(View):
 
 class AppealsBackend(View):
     """Streaming back the appeals as json :D"""
-
     def __init__(self):
         self.regex_denial_processor = ProcessDenialRegex()
 
@@ -328,8 +331,7 @@ class AppealsBackend(View):
     def handle_for_form(self, request, form):
         if form.is_valid():
             denial_id = form.cleaned_data["denial_id"]
-            email = form.cleaned_data["email"]
-            hashed_email = hashlib.sha512(email.encode("utf-8")).hexdigest()
+            hashed_email = Denial.get_hashed_email(form.cleaned_data["email"])
 
             # Get the current info
             denial = Denial.objects.filter(
@@ -392,10 +394,12 @@ class AppealsBackend(View):
                 s = Template(appeal)
                 ret = s.safe_substitute(
                     {
-                        "insurance_company": denial.insurance_company
-                        or "{insurance_company}",
-                        "diagnosis": denial.diagnosis or "{diagnosis}",
-                        "procedure": denial.procedure or "{procedure}",
+                        "insurance_company":
+                            denial.insurance_company or "{insurance_company}",
+                        "diagnosis":
+                            denial.diagnosis or "{diagnosis}",
+                        "procedure":
+                            denial.procedure or "{procedure}",
                     }
                 )
                 return ret
@@ -403,7 +407,9 @@ class AppealsBackend(View):
             filtered_appeals = filter(lambda x: x != None, appeals)
             saved_appeals = map(save_appeal, filtered_appeals)
             subbed_appeals = map(sub_in_appeals, filtered_appeals)
-            subbed_appeals_json = map(lambda e: json.dumps(e) + "\n", subbed_appeals)
+            subbed_appeals_json = map(
+                lambda e: json.dumps(e) + "\n", subbed_appeals
+            )
             return StreamingHttpResponse(
                 subbed_appeals_json, content_type="application/json"
             )
@@ -431,7 +437,12 @@ class OCRView(View):
         uploader = files["uploader"]
         doc_txt = self._ocr(uploader)
         return render(
-            request, "scrub.html", context={"ocr_result": doc_txt, "upload_more": False}
+            request,
+            "scrub.html",
+            context={
+                "ocr_result": doc_txt,
+                "upload_more": False
+            }
         )
 
     def _ocr(self, uploader):
@@ -451,64 +462,75 @@ class OCRView(View):
         return "\n".join(texts)
 
 
-class ProcessView(View):
-    def __init__(self):
+class ProcessView(generic.FormView):
+    template_name = 'scrub.html'
+
+    def get_ocr_result(self):
+        if self.request.method == 'POST':
+            return request.POST.get("denial_text", "")
+        return ''
+
+    def get_context_data(self, **kwargs):
+        context = {
+            "ocr_result": self.get_ocr_result(),
+            "upload_more": True,
+        }
+
+    def __init__(self, *args, **kwargs):
         self.regex_denial_processor = ProcessDenialRegex()
         self.codes_denial_processor = ProcessDenialCodes()
         self.regex_src = DataSource.objects.get(name="regex")
         self.codes_src = DataSource.objects.get(name="codes")
         self.zip_engine = uszipcode.search.SearchEngine()
 
-    def post(self, request):
-        form = DenialForm(request.POST)
-        if form.is_valid():
-            # It's not a password per-se but we want password like hashing.
-            # but we don't support changing the values.
-            email = form.cleaned_data["email"]
-            hashed_email = hashlib.sha512(email.encode("utf-8")).hexdigest()
-            denial_text = form.cleaned_data["denial_text"]
-            denial = Denial(denial_text=denial_text, hashed_email=hashed_email)
-            denial.save()
-            denial_types = self.regex_denial_processor.get_denialtype(denial_text)
-            denial_type = []
-            for dt in denial_types:
-                DenialTypesRelation(
-                    denial=denial, denial_type=dt, src=self.regex_src
-                ).save()
-                denial_type.append(dt)
+    def form_valid(self, form):
+        # It's not a password per-se but we want password like hashing.
+        # but we don't support changing the values.
+        hashed_email = Denial.get_hashed_email(form.cleaned_data["email"])
+        denial_text = form.cleaned_data["denial_text"]
 
-            plan_type = self.codes_denial_processor.get_plan_type(denial_text)
-            state = None
-            zip = form.cleaned_data["zip"]
-            if zip is not None and zip != "":
-                state = self.zip_engine.by_zipcode(form.cleaned_data["zip"]).state
-            (procedure, diagnosis) = appealGenerator.get_procedure_and_diagnosis(
-                denial_text
-            )
-            form = PostInferedForm(
-                initial={
-                    "denial_type": denial_type,
-                    "denial_id": denial.denial_id,
-                    "email": email,
-                    "your_state": state,
-                    "procedure": procedure,
-                    "diagnosis": diagnosis,
-                }
-            )
-            return render(
-                request,
-                "categorize.html",
-                context={
-                    "post_infered_form": form,
-                    "upload_more": True,
-                },
-            )
-        else:
-            return render(
-                request,
-                "scrub.html",
-                context={
-                    "error": form.errors,
-                    "ocr_result": request.POST.get("denial_text", ""),
-                },
-            )
+        Denial.objects.create(
+            denial_text=denial_text,
+            hashed_email=hashed_email,
+        )
+
+        denial_types = self.regex_denial_processor.get_denialtype(denial_text)
+        denial_type = []
+        for dt in denial_types:
+            DenialTypesRelation(
+                denial=denial, denial_type=dt, src=self.regex_src
+            ).save()
+            denial_type.append(dt)
+
+        plan_type = self.codes_denial_processor.get_plan_type(denial_text)
+        state = None
+        zip_code = form.cleaned_data["zip"]
+        if zip_code is not None and zip_code != "":
+            state = self.zip_engine.by_zip_code(form.cleaned_data["zip"]).state
+        (procedure,
+         diagnosis) = appealGenerator.get_procedure_and_diagnosis(denial_text)
+
+        form = PostInferedForm(
+            initial={
+                "denial_type": denial_type,
+                "denial_id": denial.denial_id,
+                "email": email,
+                "your_state": state,
+                "procedure": procedure,
+                "diagnosis": diagnosis,
+            }
+        )
+
+        # TODO: This should be a redirect to a new view to prevent
+        # double-submission and other potentially unexpected issues. Normally,
+        # this can be done by assigning a success_url to the view and Django
+        # will take care of the rest. Since we need to pass extra information
+        # along, we can use get_success_url to generate a querystring.
+        return render(
+            request,
+            "categorize.html",
+            context={
+                "post_infered_form": form,
+                "upload_more": True,
+            },
+        )

@@ -1,3 +1,4 @@
+import hashlib
 import re
 import sys
 from typing import Optional
@@ -33,7 +34,9 @@ class PlanType(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300, primary_key=False)
     alt_name = models.CharField(max_length=300, primary_key=False)
-    regex = RegexField(max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M)
+    regex = RegexField(
+        max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M
+    )
     negative_regex = RegexField(
         max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M
     )
@@ -47,7 +50,9 @@ class Regulator(models.Model):
     name = models.CharField(max_length=300, primary_key=False)
     website = models.CharField(max_length=300, primary_key=False)
     alt_name = models.CharField(max_length=300, primary_key=False)
-    regex = RegexField(max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M)
+    regex = RegexField(
+        max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M
+    )
     negative_regex = RegexField(
         max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M
     )
@@ -59,13 +64,17 @@ class Regulator(models.Model):
 class Diagnosis(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300, primary_key=False)
-    regex = RegexField(max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M)
+    regex = RegexField(
+        max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M
+    )
 
 
 class Procedures(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300, primary_key=False)
-    regex = RegexField(max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M)
+    regex = RegexField(
+        max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M
+    )
 
 
 class DenialTypes(models.Model):
@@ -79,11 +88,15 @@ class DenialTypes(models.Model):
         on_delete=models.SET_NULL,
     )
     name = models.CharField(max_length=300, primary_key=False)
-    regex = RegexField(max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M)
+    regex = RegexField(
+        max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M
+    )
     negative_regex = RegexField(
         max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M
     )
-    appeal_text = models.TextField(max_length=3000, primary_key=False, blank=True)
+    appeal_text = models.TextField(
+        max_length=3000, primary_key=False, blank=True
+    )
     form = models.CharField(max_length=300, null=True)
 
     def get_form(self):
@@ -94,7 +107,9 @@ class DenialTypes(models.Model):
             else:
                 return None
         else:
-            return getattr(sys.modules["fighthealthinsurance.forms"], self.form)
+            return getattr(
+                sys.modules["fighthealthinsurance.forms"], self.form
+            )
 
     def __str__(self):
         return self.name
@@ -103,11 +118,15 @@ class DenialTypes(models.Model):
 class AppealTemplates(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300, primary_key=False)
-    regex = RegexField(max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M)
+    regex = RegexField(
+        max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M
+    )
     negative_regex = RegexField(
         max_length=400, re_flags=re.IGNORECASE | re.UNICODE | re.M
     )
-    appeal_text = models.TextField(max_length=3000, primary_key=False, blank=True)
+    appeal_text = models.TextField(
+        max_length=3000, primary_key=False, blank=True
+    )
 
 
 class DataSource(models.Model):
@@ -132,21 +151,36 @@ class Denial(models.Model):
     hashed_email = models.CharField(max_length=300, primary_key=False)
     denial_text = models.TextField(max_length=30000000, primary_key=False)
     date = models.DateField(auto_now=False, auto_now_add=True)
-    denial_type = models.ManyToManyField(DenialTypes, through=DenialTypesRelation)
+    denial_type = models.ManyToManyField(
+        DenialTypes, through=DenialTypesRelation
+    )
     plan_type = models.ManyToManyField(PlanType, through=PlanTypesRelation)
-    regulator = models.ForeignKey(Regulator, null=True, on_delete=models.SET_NULL)
+    regulator = models.ForeignKey(
+        Regulator, null=True, on_delete=models.SET_NULL
+    )
     urgent = models.BooleanField(default=False)
     pre_service = models.BooleanField(default=False)
     denial_date = models.DateField(auto_now=False, null=True)
-    insurance_company = models.CharField(max_length=300, primary_key=False, null=True)
+    insurance_company = models.CharField(
+        max_length=300, primary_key=False, null=True
+    )
     claim_id = models.CharField(max_length=300, primary_key=False, null=True)
     procedure = models.CharField(max_length=300, primary_key=False, null=True)
     diagnosis = models.CharField(max_length=300, primary_key=False, null=True)
-    appeal_text = models.TextField(max_length=3000000000, primary_key=False, null=True)
+    appeal_text = models.TextField(
+        max_length=3000000000, primary_key=False, null=True
+    )
+
+    @staticmethod
+    def get_hashed_email(email):
+        encoded_email = email.encode("utf-8")
+        return hashlib.sha512(encoded_email)
 
 
 class ProposedAppeal(models.Model):
-    appeal_text = models.TextField(max_length=3000000000, primary_key=False, null=True)
+    appeal_text = models.TextField(
+        max_length=3000000000, primary_key=False, null=True
+    )
     for_denial = models.ForeignKey(Denial, on_delete=models.CASCADE)
 
     def __str__(self):

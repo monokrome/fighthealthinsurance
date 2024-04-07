@@ -21,19 +21,35 @@ from fighthealthinsurance import views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("scan", views.ScanView.as_view(), name="scan"),
+    path("scan", views.ProcessView.as_view(), name="scan"),
     path("server_side_ocr", views.OCRView.as_view(), name="server_side_ocr"),
     path("", views.IndexView.as_view(), name="root"),
     path("about-us", views.AboutView.as_view(), name="about"),
-    path("other-resources", views.OtherResourcesView.as_view(), name="other-resources"),
+    path(
+        "other-resources",
+        views.OtherResourcesView.as_view(),
+        name="other-resources"
+    ),
     path("process", views.ProcessView.as_view(), name="process"),
-    path("privacy_policy", views.PrivacyPolicyView.as_view(), name="privacy_policy"),
+    path(
+        "privacy_policy",
+        views.PrivacyPolicyView.as_view(),
+        name="privacy_policy"
+    ),
     path("share_denial", views.ShareDenialView.as_view(), name="share_denial"),
     path("share_appeal", views.ShareAppealView.as_view(), name="share_appeal"),
     path("remove_data", views.RemoveDataView.as_view(), name="remove_data"),
     path("tos", views.TermsOfServiceView.as_view(), name="tos"),
-    path("find_next_steps", views.FindNextSteps.as_view(), name="find_next_steps"),
-    path("generate_appeal", views.GenerateAppeal.as_view(), name="generate_appeal"),
+    path(
+        "find_next_steps",
+        views.FindNextSteps.as_view(),
+        name="find_next_steps"
+    ),
+    path(
+        "generate_appeal",
+        views.GenerateAppeal.as_view(),
+        name="generate_appeal"
+    ),
     path(
         "appeals_json_backend",
         views.AppealsBackend.as_view(),
